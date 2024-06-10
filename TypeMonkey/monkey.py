@@ -4,6 +4,7 @@ import random
 import time
 import re
 import threading
+import queue
 
 
 # First thing that needs to be done is to create a way to randomly generate a letter of the alphabet
@@ -37,26 +38,12 @@ def rmvDups(list):
 
 
 hamlet = rmvDups(hamlet)
-# These are due to the fact that I want this process to end at some point
-hamlet.remove("tragicalcomicalhistoricalpastoral")
-hamlet.remove("historicalpastoral")
-hamlet.remove("tragicalhistorical")
-hamlet.remove("somethingsettled")
-hamlet.remove("liberalconceited")
-hamlet.remove("seemingvirtuous")
-hamlet.remove("pastoralcomical")
-hamlet.remove("sentinelsfirst")
-hamlet.remove("shrillsounding")
-hamlet.remove("fortifications")
-# hamlet.remove("")
-# hamlet.remove("")
-# hamlet.remove("")
-# hamlet.remove("")
-# hamlet.remove("")
-# hamlet.remove("")
 
 # Make a list for each monkey to use separately
 ham2 = ham3 = hamlet
+
+# Must create a lock for when the monkeys access and modify the list
+lock = threading.Lock()
 
 # Create the list that compares the random string and the strings of hamlet
 def monkey(name):
@@ -69,77 +56,29 @@ def monkey(name):
         totStr = totStr + randomLetter
         # print(randomLetter)
         # time.sleep(1)
-        if len(totStr) >= 30:
+        if len(totStr) >= 30: # This is needed so that way the word can reset if it gets too long
             totStr = ''
-        for x in hamlet:
-            if x in totStr:
-                hamlet.remove(x)
-                # print(foundWrds)
-                totWrds += 1
-                print(name + ' FOUND ' + x + " IN HAMLET")
-                print(name + " HAS FOUND " + str(totWrds) + " WORDS")
-                # time.sleep(1)
-        if totWrds == total:
-            print("All words have been found in Hamlet!")
-            break
+        with lock:
+            for x in hamlet[:]: # We iterate over a shallow copy to avoid modification during iteration
+                if x in totStr:
+                    hamlet.remove(x)
+                    totWrds += 1
+                    print(name + ' FOUND \"' + x + "\" IN HAMLET")
+                    print(name + " HAS FOUND " + str(totWrds) + " WORDS\n")
+            if totWrds == total:
+                print("All words have been found in Hamlet!")
+                break
 
-def monkey2(name):
-    totStr2 = ''
-    totWrds2 = 0
-    total2 = len(ham2)
-    print("THERE ARE " + str(total2) + " WORDS IN HAMLET")
-    while True:
-        randomLetter = randoLetter()
-        totStr2 = totStr2 + randomLetter
-        # print(randomLetter)
-        # time.sleep(1)
-        if len(totStr2) >= 30:
-            totStr2 = ''
-        for x in ham2:
-            if x in totStr2:
-                ham2.remove(x)
-                # print(foundWrds)
-                totWrds2 += 1
-                print(name + ' FOUND ' + x + " IN HAMLET")
-                print(name + " HAS FOUND " + str(totWrds2) + " WORDS")
-                # time.sleep(1)
-        if totWrds2 == total2:
-            print("All words have been found in Hamlet!")
-            break  
-
-def monkey3(name):
-    totStr3 = ''
-    totWrds3 = 0
-    total = len(ham3)
-    print("THERE ARE " + str(total) + " WORDS IN HAMLET")
-    while True:
-        randomLetter = randoLetter()
-        totStr3 = totStr3 + randomLetter
-        # print(randomLetter)
-        # time.sleep(1)
-        if len(totStr3) >= 30:
-            totStr3 = ''
-        for x in ham3:
-            if x in totStr3:
-                ham3.remove(x)
-                # print(foundWrds)
-                totWrds3 += 1
-                print(name + ' FOUND ' + x + " IN HAMLET")
-                print(name + " HAS FOUND " + str(totWrds3) + " WORDS")
-                # time.sleep(1)
-        if totWrds3 == total:
-            print("All words have been found in Hamlet!")
-            break 
-
-# GET THEM MONKEYS GOING           
 Cletus = threading.Thread(
     target=monkey, args=("Cletus",)
 )
+
 Lionel = threading.Thread(
-    target=monkey2, args=("Lionel",)
+    target=monkey, args=("Lionel",)
 )
+
 Mabel = threading.Thread(
-    target=monkey3, args=("Mabel",)
+    target=monkey, args=("Mabel",)
 )
 
 # Start the monkeys
